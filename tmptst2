@@ -1,0 +1,58 @@
+import thread
+import time
+import os
+import usb.core
+
+#  ******* Initialize *******
+try:
+    from msvcrt import getch  # try to import Windows version
+except ImportError:
+    def getch():   # define non-Windows version
+        import sys, tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+ 
+char = None
+ 
+def keypress():
+    global char
+    char = getch()
+
+
+print "Testing Phidget IR Temperature Sensor"
+os.environ["USBIP_SERVER"] = '172.16.10.1'
+dev = usb.core.find(idVendor=0x06c2, idProduct=0x003c)
+# dev = usb.core.find(address=int("0022bdcf3600", 16))   # find using mac address
+if dev is None:
+  raise ValueError('Device not found')
+
+# begin generic usb initialization
+print "--Generic USB Initialization--"
+dev.set_configuration()
+print usb.util.get_string(dev, 256, 1)
+print usb.util.get_string(dev, 256, 2)
+print usb.util.get_string(dev, 256, 3)
+# end generic usb initialization
+
+thread.start_new_thread(keypress, ())
+print "-------------------------------------------"
+
+while True :
+  if char is not None:
+    print "Terminando el Programa " + char
+    break
+  ir_report = dev.read(1, 64)
+  ir_temp = ir_report[0x00] | ((ir_report[0x01] & 0x0f) << 8)
+  ambient_temp = ir_report[0x02] | ((ir_report[0x03] & 0x0f) << 8)
+  irstr = str(ir_temp)
+  astr = str(ambient_temp)
+  print "Reading Temperature " + irstr + " " + astr + "\r"
+  time.sleep(2)
+#  print ir_temp, ambient_temp
+#  print "\r"
