@@ -1,0 +1,22 @@
+import os
+import usb.core
+
+print ("Testing Phidget IR Temperature Sensor")
+os.environ["USBIP_SERVER"] = '172.16.10.1'
+dev = usb.core.find(idVendor=0x06c2, idProduct=0x003c)
+# dev = usb.core.find(address=int("0022bdcf3600", 16))   # find using mac address
+if dev is None:
+  raise ValueError('Device not found')
+
+# begin generic usb initialization
+dev.set_configuration()
+print usb.util.get_string(dev, 256, 1)
+print usb.util.get_string(dev, 256, 2)
+print usb.util.get_string(dev, 256, 3)
+# end generic usb initialization
+
+while True :
+  ir_report = dev.read(1, 64)
+  ir_temp = ir_report[0x00] | ((ir_report[0x01] & 0x0f) << 8)
+  ambient_temp = ir_report[0x02] | ((ir_report[0x03] & 0x0f) << 8)
+  print ir_temp, ambient_temp
